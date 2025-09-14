@@ -21,25 +21,42 @@ export const TranslationApp = () => {
   const [isTranslating, setIsTranslating] = useState(false);
   const { toast } = useToast();
 
-  // Mock translation function - replace with actual API call
+  // Real translation function using MyMemory API
   const translateText = async (text: string, from: string, to: string) => {
+    if (!text.trim()) {
+      setOutputText("");
+      return;
+    }
+
     setIsTranslating(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock translation - in real app, use Google Translate API or similar
-    const mockTranslations: Record<string, string> = {
-      "hello": "hola",
-      "goodbye": "adiós",
-      "thank you": "gracias",
-      "how are you": "¿cómo estás?",
-      "good morning": "buenos días",
-    };
-    
-    const translated = mockTranslations[text.toLowerCase()] || `[Translated: ${text}]`;
-    setOutputText(translated);
-    setIsTranslating(false);
+    try {
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Translation failed');
+      }
+      
+      const data = await response.json();
+      
+      if (data.responseStatus === 200) {
+        setOutputText(data.responseData.translatedText);
+      } else {
+        throw new Error('Translation service error');
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast({
+        title: "Translation failed",
+        description: "Please try again or check your internet connection",
+        variant: "destructive",
+      });
+      setOutputText("Translation failed. Please try again.");
+    } finally {
+      setIsTranslating(false);
+    }
   };
 
   // Handle speech recognition
